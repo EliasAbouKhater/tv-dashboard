@@ -1,0 +1,189 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Morning dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.09);
+  --ink:#f3f1ff;--mute:#a7a3c9;--pink:#ffb3d1;--mint:#9ff0d0;--sun:#ffd98a;--sky:#9fd3ff;--lav:#c9b6ff;--up:#8ef0b0;--down:#ff9aa8}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden}
+body{background:radial-gradient(1200px 700px at 12% 0%,#2a1f5c 0%,transparent 60%),
+  radial-gradient(900px 600px at 100% 100%,#123a4a 0%,transparent 55%),linear-gradient(160deg,#0f1530,#1a1240);
+  color:var(--ink);font-family:Nunito,system-ui,-apple-system,sans-serif;padding:3vh 3vw}
+.grid{height:100%;display:grid;grid-template-columns:1.15fr 1fr 1fr;grid-template-rows:.95fr 1.3fr .8fr;grid-auto-flow:dense;gap:1.6vw}
+.card{background:var(--card);border:1px solid var(--line);border-radius:1.6vw;padding:1.4vw 1.7vw;overflow:hidden;
+  display:flex;flex-direction:column;gap:.6vw;box-shadow:0 .6vw 2vw rgba(0,0,0,.18);min-height:0}
+h2{font-size:1.05vw;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);display:flex;gap:.5vw;align-items:center}
+h2 .dot{width:.55vw;height:.55vw;border-radius:50%;background:currentColor}
+h2 .aside{margin-left:auto;letter-spacing:.04em;text-transform:none;font-weight:600}
+.big{font-weight:800;line-height:1}
+.mute{color:var(--mute)} .small{font-size:1.05vw}
+.na{color:var(--mute);font-style:italic;font-size:1.1vw}
+#clock{font-size:7.4vw;letter-spacing:-.02em}
+#date{font-size:1.9vw;font-weight:600;color:var(--pink)}
+#greet{font-size:1.4vw;color:var(--mute);margin-top:auto}
+.wx{display:flex;align-items:center;gap:1.2vw}.wx .ic{font-size:4.6vw}.wx .t{font-size:4.2vw}
+.pill{display:inline-block;padding:.15vw .65vw;border-radius:99vw;background:rgba(255,255,255,.08);font-size:1vw;margin:.2vw .2vw 0 0}
+ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.55vw}
+li{font-size:1.2vw;line-height:1.3}
+li .k{color:var(--lav);font-weight:800;margin-right:.6vw}
+li.rem .k{color:var(--mint)}
+.done{text-decoration:line-through;color:var(--mute)}
+svg{width:100%;flex:1;min-height:0}
+svg text{font-family:Nunito,system-ui,sans-serif}
+.mk{display:flex;flex-direction:column;gap:.9vw}.mk .n{font-size:2.2vw;font-weight:800}
+.chg{font-size:1.2vw;font-weight:800;margin-left:.5vw}.up{color:var(--up)}.down{color:var(--down)}
+#quote{font-size:1.55vw;line-height:1.35;font-weight:600}
+#qa{color:var(--pink);font-size:1.15vw;margin-top:.4vw}
+.foot{position:fixed;right:3.2vw;bottom:1.1vh;font-size:.8vw;color:rgba(255,255,255,.28)}
+#radio-chip{position:fixed;left:3.2vw;bottom:1vh;font-size:.95vw;color:var(--pink);opacity:.8}
+</style></head><body>
+<div class="grid">
+  <section class="card" id="c-clock"><div id="clock" class="big">--:--</div><div id="date"></div><div id="greet"></div></section>
+  <section class="card" id="c-weather" style="color:var(--sun)"><h2><span class="dot"></span><span id="wtitle">Weather</span></h2><div id="weather" style="color:var(--ink)"></div></section>
+  <section class="card" id="c-reminders" style="color:var(--lav)"><h2><span class="dot"></span>Reminders · today</h2><div id="today" style="color:var(--ink)"></div></section>
+
+  <section class="card" id="c-sky" style="color:var(--sun);grid-column:span 2"><h2><span class="dot"></span>Sun, moon &amp; temperature<span class="aside" id="moonname"></span></h2><div id="sky" style="display:flex;flex:1;min-height:0"></div></section>
+  <section class="card" id="c-tide" style="color:var(--sky)"><h2><span class="dot"></span>Tide<span class="aside" id="seatemp"></span></h2><div id="tide" style="display:flex;flex:1;min-height:0"></div></section>
+
+  <section class="card" id="c-prices" style="color:var(--sun)"><h2><span class="dot"></span>Markets · 24h</h2><div id="mk" class="mk" style="color:var(--ink)"></div></section>
+  <section class="card" id="c-quote" style="color:var(--pink)"><h2><span class="dot"></span>Quote of the day</h2><div id="quote"></div><div id="qa"></div></section>
+  <section class="card" id="c-log" style="color:var(--lav)"><h2><span class="dot"></span><span id="logtitle">Latest notes</span></h2><div id="sch" style="color:var(--ink)"></div></section>
+</div>
+<div class="foot" id="foot"></div><div id="radio-chip"></div>
+<script>
+let TZ, NAME='';   // TZ undefined = the browser's own zone until morning.json says otherwise
+const $=id=>document.getElementById(id), NS='http://www.w3.org/2000/svg';
+// All text goes in via textContent / SVG text nodes — never innerHTML with data.
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+function sv(tag,attrs,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;return e;}
+function fill(id,...kids){$(id).replaceChildren(...kids);}
+function na(sec){return el('div','na','unavailable'+(sec&&sec.error?' — '+sec.error.split(':')[0]:''));}
+const hm=iso=>new Date(iso).toLocaleTimeString('en-GB',{timeZone:TZ,hour:'2-digit',minute:'2-digit'});
+const mins=s=>{const [h,m]=s.split(':').map(Number);return h*60+m;};
+function nowMins(){return mins(new Date().toLocaleTimeString('en-GB',{timeZone:TZ,hour:'2-digit',minute:'2-digit',hour12:false}));}
+
+function tick(){const d=new Date();
+  $('clock').textContent=d.toLocaleTimeString('en-GB',{timeZone:TZ,hour:'2-digit',minute:'2-digit'});
+  $('date').textContent=d.toLocaleDateString('en-GB',{timeZone:TZ,weekday:'long',day:'numeric',month:'long'});
+  const h=+d.toLocaleString('en-GB',{timeZone:TZ,hour:'2-digit',hour12:false});
+  const who=NAME?', '+NAME:'';
+  $('greet').textContent=h<12?'Good morning'+who+' ☕':h<18?'Good afternoon'+who:'Good evening'+who+' 🌙';}
+
+// ---- sun & moon: real elevation curves for today, 10-min steps (145 points)
+function drawSky(d,temps){
+  const W=1000,H=300,HZ=175,K=150/90, X=i=>i/144*W, Y=e=>HZ-Math.max(e,-28)*K, XT=t=>mins(t)/1440*W;
+  const s=sv('svg',{viewBox:`0 0 ${W} ${H}`,preserveAspectRatio:'xMidYMid meet'});
+  const defs=sv('defs',{});
+  defs.innerHTML='<linearGradient id="sunf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd98a" stop-opacity=".45"/><stop offset="1" stop-color="#ffd98a" stop-opacity="0"/></linearGradient>'+
+    '<linearGradient id="moonf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9b6ff" stop-opacity=".35"/><stop offset="1" stop-color="#c9b6ff" stop-opacity="0"/></linearGradient>'+
+    `<clipPath id="above"><rect x="0" y="0" width="${W}" height="${HZ}"/></clipPath>`+
+    '<filter id="glow"><feGaussianBlur stdDeviation="6"/></filter>';
+  s.append(defs);
+  const path=a=>a.map((e,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(e).toFixed(1)).join(' ');
+  const area=a=>path(a)+` L${W} ${HZ} L0 ${HZ} Z`;
+  // dim dashed path below the horizon, bright filled path above it
+  [['moon','#c9b6ff'],['sun','#ffd98a']].forEach(([b,c])=>{
+    s.append(sv('path',{d:path(d[b].elev),fill:'none',stroke:c,'stroke-opacity':.18,'stroke-width':2.5,'stroke-dasharray':'3 7'}));
+    const g=sv('g',{'clip-path':'url(#above)'});
+    g.append(sv('path',{d:area(d[b].elev),fill:`url(#${b}f)`}),sv('path',{d:path(d[b].elev),fill:'none',stroke:c,'stroke-width':b==='sun'?4:3}));
+    s.append(g);});
+  s.append(sv('line',{x1:0,y1:HZ,x2:W,y2:HZ,stroke:'#fff','stroke-opacity':.3,'stroke-width':1.5}));
+  [0,6,12,18,24].forEach(h=>s.append(sv('text',{x:Math.min(Math.max(h/24*W,14),W-14),y:H-6,'text-anchor':'middle','font-size':17,fill:'#a7a3c9'},String(h).padStart(2,'0'))));
+  const lab=(t,txt,c,row)=>{if(!t)return;const x=XT(t);
+    s.append(sv('circle',{cx:x,cy:HZ,r:5,fill:c}));
+    s.append(sv('text',{x:Math.min(Math.max(x,60),W-60),y:HZ+30+row*28,'text-anchor':'middle','font-size':21,'font-weight':800,fill:c},txt));};
+  lab(d.sun.rise,'☀ rise '+d.sun.rise,'#ffd98a',0); lab(d.sun.set,'☀ set '+d.sun.set,'#ffd98a',0);
+  lab(d.moon.rise,'☾ rise '+d.moon.rise,'#c9b6ff',1); lab(d.moon.set,'☾ set '+d.moon.set,'#c9b6ff',1);
+  // hourly temperature on its own scale in the band above the horizon
+  if(temps&&temps.length){const tl=Math.min(...temps),th=Math.max(...temps),span=(th-tl)||1,
+      TX=h=>h/24*W, TY=v=>150-(v-tl)/span*105;
+    s.append(sv('path',{d:temps.map((v,h)=>(h?'L':'M')+TX(h).toFixed(1)+' '+TY(v).toFixed(1)).join(' '),
+      fill:'none',stroke:'#ff9aa8','stroke-width':3,'stroke-linejoin':'round','stroke-opacity':.9}));
+    temps.forEach((v,h)=>{if(h%3)return;const x=Math.min(Math.max(TX(h),16),W-16);
+      s.append(sv('circle',{cx:TX(h),cy:TY(v),r:4.5,fill:'#ff9aa8'}));
+      s.append(sv('text',{x,y:TY(v)-12,'text-anchor':'middle','font-size':19,'font-weight':800,fill:'#ffc2ca'},v+'°'));});}
+  const n=nowMins(), i=Math.round(n/10), xn=n/1440*W;
+  s.append(sv('line',{x1:xn,y1:14,x2:xn,y2:HZ,stroke:'#ffb3d1','stroke-opacity':.55,'stroke-width':1.5,'stroke-dasharray':'4 5'}));
+  s.append(sv('text',{x:Math.min(Math.max(xn,20),W-20),y:12,'text-anchor':'middle','font-size':15,fill:'#ffb3d1'},'now'));
+  const me=d.moon.elev[i], se=d.sun.elev[i];
+  if(me>0){s.append(sv('circle',{cx:xn,cy:Y(me),r:16,fill:'#c9b6ff',opacity:.5,filter:'url(#glow)'}));
+    s.append(sv('text',{x:xn,y:Y(me)+10,'text-anchor':'middle','font-size':28},d.moon.icon));}
+  if(se>0){s.append(sv('circle',{cx:xn,cy:Y(se),r:22,fill:'#ffd98a',opacity:.7,filter:'url(#glow)'}));
+    s.append(sv('circle',{cx:xn,cy:Y(se),r:12,fill:'#ffe7a8'}));}
+  return s;}
+
+// ---- tide: 15-min sea level for today (96 points)
+function drawTide(d){
+  const W=500,H=300,T=40,B=240, c=d.curve, lo=Math.min(...c), hi=Math.max(...c), pad=(hi-lo)*.12||.1;
+  const X=i=>i/(c.length-1)*W, Y=v=>B-(v-(lo-pad))/((hi+pad)-(lo-pad))*(B-T), XT=t=>mins(t)/1440*W;
+  const s=sv('svg',{viewBox:`0 0 ${W} ${H}`,preserveAspectRatio:'xMidYMid meet'});
+  const defs=sv('defs',{}); defs.innerHTML='<linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fd3ff" stop-opacity=".55"/><stop offset="1" stop-color="#9fd3ff" stop-opacity=".04"/></linearGradient>';
+  s.append(defs);
+  const p=c.map((v,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)).join(' ');
+  s.append(sv('path',{d:p+` L${W} ${B+30} L0 ${B+30} Z`,fill:'url(#sea)'}),sv('path',{d:p,fill:'none',stroke:'#9fd3ff','stroke-width':3.5}));
+  d.events.forEach(e=>{const x=XT(e.time),y=Y(e.m),hiE=e.kind==='High';
+    s.append(sv('circle',{cx:x,cy:y,r:6,fill:hiE?'#9fd3ff':'#ffb3d1'}));
+    s.append(sv('text',{x:Math.min(Math.max(x,48),W-48),y:hiE?y-16:y+32,'text-anchor':'middle','font-size':22,'font-weight':800,fill:hiE?'#9fd3ff':'#ffb3d1'},(hiE?'▲ ':'▼ ')+e.time));});
+  const xn=nowMins()/1440*W, vn=c[Math.min(Math.round(nowMins()/15),c.length-1)];
+  s.append(sv('line',{x1:xn,y1:T-20,x2:xn,y2:B+30,stroke:'#ffb3d1','stroke-opacity':.55,'stroke-width':1.5,'stroke-dasharray':'4 5'}));
+  s.append(sv('circle',{cx:xn,cy:Y(vn),r:8,fill:'#fff'}));
+  [0,6,12,18,24].forEach(h=>s.append(sv('text',{x:Math.min(Math.max(h/24*W,14),W-14),y:H-4,'text-anchor':'middle','font-size':17,fill:'#a7a3c9'},String(h).padStart(2,'0'))));
+  return s;}
+
+function arrow(chg){const up=chg>=0;return el('span','chg '+(up?'up':'down'),(up?'▲ ':'▼ ')+Math.abs(chg)+'%');}
+
+function render(j){
+  const c=j.config||{}; TZ=c.timezone||undefined; NAME=c.name||'';
+  $('wtitle').textContent='Weather'+(c.location?' · '+c.location:''); $('logtitle').textContent=c.log_title||'Latest notes';
+  ['weather','sky','tide','prices','quote','reminders','log'].forEach(k=>{$('c-'+k).style.display=j[k]?'':'none';});
+  tick();
+  const w=j.weather||{ok:false}; if(!w.ok) fill('weather',na(w)); else {const d=w.data;
+    const top=el('div','wx'); top.append(el('span','ic',d.icon),el('span','t big',d.temp+'°'));
+    const side=el('div'); side.append(el('div',null,d.text),el('div','mute small','feels '+d.feels+'° · '+d.humidity+'% humid'));top.append(side);
+    const p=el('div'); ['↑ '+d.hi+'°','↓ '+d.lo+'°','UV '+Math.round(d.uv),'wind '+d.wind+' km/h'].forEach(t=>p.append(el('span','pill',t)));
+    const old=w.stale?el('div','mute small','as of '+w.at.slice(11,16)):null;
+    fill('weather',...[top,p,old].filter(Boolean));}
+  const k=j.sky||{ok:false}; if(!k.ok){fill('sky',na(k));$('moonname').textContent='';} else {fill('sky',drawSky(k.data,j.weather&&j.weather.ok?j.weather.data.hourly:null));
+    $('moonname').textContent=k.data.moon.icon+' '+k.data.moon.name+' · '+k.data.moon.illumination+'% lit';}
+  const t=j.tide||{ok:false}; if(!t.ok){fill('tide',na(t));$('seatemp').textContent='';} else {fill('tide',drawTide(t.data));
+    $('seatemp').textContent=t.data.sea_temp?'sea '+Math.round(t.data.sea_temp)+'°':'';}
+  const r=j.reminders||{ok:false}, today=[];
+  if(!r.ok) today.push(na(r));
+  else if(!r.data.length) today.push(el('div','mute','No reminders today ✨'));
+  else{const u=el('ul');r.data.slice(0,6).forEach(x=>{const li=el('li','rem'+(x.done?' done':''));li.append(el('span','k',x.time),document.createTextNode('🔔 '+x.msg));u.append(li);});today.push(u);}
+  fill('today',...today);
+  const p=j.prices||{ok:false}; if(!p.ok) fill('mk',na(p)); else {const d=p.data,fmt=n=>'$'+n.toLocaleString('en-US');
+    const g=el('div'),gn=el('div','n',fmt(d.gold.usd));gn.append(arrow(d.gold.chg24));g.append(el('div','mute small','🪙 Gold · oz'),gn);
+    const b=el('div'),bn=el('div','n',fmt(d.btc.usd));bn.append(arrow(d.btc.chg24));b.append(el('div','mute small','₿ Bitcoin'),bn);
+    fill('mk',g,b);}
+  const q=j.quote||{ok:false}; if(!q.ok){fill('quote',na(q));$('qa').textContent='';} else {$('quote').textContent='“'+q.data.text+'”';$('qa').textContent='— '+q.data.author;}
+  const s=j.log||{ok:false}; if(!s.ok) fill('sch',na(s)); else {const u=el('ul');
+    s.data.lines.slice(0,3).forEach(x=>{const li=el('li');li.append(el('span','k',x.head+' '),document.createTextNode(x.text.length>110?x.text.slice(0,107)+'…':x.text));u.append(li);});
+    fill('sch',u);}
+  $('foot').textContent='updated '+hm(j.built);
+}
+async function load(){try{const r=await fetch('morning.json?t='+Date.now());render(await r.json());}
+  catch(e){$('foot').textContent='dashboard data unavailable — '+e.message;}}
+
+// ---- alarm mode (?alarm=1&run=<id>): radio inside the page, started by the alarm
+// script's tap — WebView blocks autoplay; a synthetic touch over ADB is the gesture.
+const Q=new URLSearchParams(location.search);
+if(Q.get('alarm')){
+  let STREAMS=[['FIP','https://icecast.radiofrance.fr/fip-midfi.mp3']];   // replaced by radio_streams from the config
+  fetch('morning.json?t='+Date.now()).then(r=>r.json()).then(j=>{if(j.config&&j.config.radio_streams.length)STREAMS=j.config.radio_streams;}).catch(()=>{});
+  const MAX_MIN=+(Q.get('stop')||45), run=Q.get('run')||'', a=new Audio(); let idx=0, started=false;
+  const report=st=>fetch('alarm-report?state='+st+'&run='+run+'&s='+idx+'&t='+Date.now()).catch(()=>{});
+  const play=()=>{a.src=STREAMS[idx][1];a.play().catch(e=>report('blocked_'+e.name));$('radio-chip').textContent='♪ '+STREAMS[idx][0];};
+  a.addEventListener('playing',()=>report('playing'));
+  a.addEventListener('error',()=>{report('stream_error');if(++idx<STREAMS.length)play();else report('all_streams_failed');});
+  document.body.addEventListener('click',()=>{if(!started){started=true;play();}});
+  // HOME/Back must end the alarm: TV Bro keeps WebView audio playing in the background.
+  const stop=why=>{if(!a.paused){a.pause();a.removeAttribute('src');a.load();$('radio-chip').textContent='';report('stopped_'+why);}};
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stop('hidden');});
+  window.addEventListener('pagehide',()=>stop('pagehide'));
+  setTimeout(()=>{a.pause();$('radio-chip').textContent='';report('auto_stopped');},MAX_MIN*60000);
+  if(navigator.wakeLock) navigator.wakeLock.request('screen').then(()=>report('wakelock_ok')).catch(e=>report('wakelock_'+e.name));
+  else report('wakelock_unsupported');
+}
+setInterval(tick,1000);load();setInterval(load,60000);
+</script></body></html>

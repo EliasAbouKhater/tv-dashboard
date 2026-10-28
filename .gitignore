@@ -1,0 +1,6 @@
+config.json
+www/morning.json
+*.log
+__pycache__/
+.venv/
+state/

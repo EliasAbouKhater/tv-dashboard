@@ -1,0 +1,22 @@
+{
+  "name": "Alex",
+  "timezone": "Europe/Lisbon",
+  "location": {"label": "Lisbon", "latitude": 38.7223, "longitude": -9.1393},
+  "sea": {"latitude": 38.68, "longitude": -9.30},
+  "alarm": {"weekday": "07:30", "weekend": "09:00", "weekend_days": [5, 6]},
+  "sections": {
+    "weather": true,
+    "sky": true,
+    "tide": true,
+    "prices": true,
+    "quote": true,
+    "reminders": false,
+    "log": false
+  },
+  "log": {"title": "Latest notes", "file": "~/notes/log.md"},
+  "reminders_file": "reminders.json",
+  "radio_streams": [
+    ["FIP", "https://icecast.radiofrance.fr/fip-midfi.mp3"],
+    ["Radio Swiss Jazz", "https://stream.srg-ssr.ch/m/rsj/mp3_128"]
+  ]
+}
